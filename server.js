@@ -1,4 +1,4 @@
-const Razorpay = require('razorpay');
+const Razorpay = require("razorpay");
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -8,7 +8,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const connectDatabase = require("./config/database");
 const authRoutes = require("./routes/authRoutes");
 const cookieParser = require("cookie-parser");
-const crypto = require('crypto');
+const crypto = require("crypto");
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "config/config.env") });
 
@@ -55,15 +55,15 @@ app.use("/api/v1", payment);
 app.use("/paypal", paypal);
 
 const razorpay = new Razorpay({
-  key_id: 'rzp_test_x0DSx4zqJLuGm0',
-  key_secret: 'kpXknJ1L4LQlrsjP9oWNpHjX',
+  key_id: "rzp_test_x0DSx4zqJLuGm0",
+  key_secret: "kpXknJ1L4LQlrsjP9oWNpHjX",
 });
 
-app.post('/create-order', async (req, res) => {
+app.post("/create-order", async (req, res) => {
   const options = {
     amount: req.body.amount * 100, // Amount in paise (e.g., 50000 paise = ₹500)
-    currency: 'INR',
-    receipt: 'order_receipt_1',
+    currency: "INR",
+    receipt: "order_receipt_1",
   };
 
   try {
@@ -74,24 +74,25 @@ app.post('/create-order', async (req, res) => {
   }
 });
 
-app.post('/verify-payment', async (req, res) => {
+app.post("/verify-payment", async (req, res) => {
   const { order_id, payment_id, signature } = req.body;
 
   // Create the expected signature
-  const body = order_id + '|' + payment_id;
+  const body = order_id + "|" + payment_id;
   const expectedSignature = crypto
-    .createHmac('sha256', razorpay.key_secret)
+    .createHmac("sha256", razorpay.key_secret)
     .update(body.toString())
-    .digest('hex');
+    .digest("hex");
 
   // Compare signatures
   if (expectedSignature === signature) {
-    res.json({ status: 'success', message: 'Payment verified successfully!' });
+    res.json({ status: "success", message: "Payment verified successfully!" });
   } else {
-    res.status(400).json({ status: 'failure', message: 'Payment verification failed!' });
+    res
+      .status(400)
+      .json({ status: "failure", message: "Payment verification failed!" });
   }
 });
-
 
 const errorMiddleware = require("./middleware/error");
 app.use(errorMiddleware);
@@ -114,15 +115,15 @@ const Server = app.listen(PORT, () => {
 //   })
 // );
 
-if (process.env.NODE_ENV.trim() === "production") {
-  console.log("Confirmed");
-  app.use(express.static(path.join(__dirname, "../frontend-common/build")));
-  app.get("*", (req, res) => {
-    res.sendFile(
-      path.resolve(__dirname, "../frontend-common/build/index.html")
-    );
-  });
-}
+// if (process.env.NODE_ENV.trim() === "production") {
+//   console.log("Confirmed");
+//   app.use(express.static(path.join(__dirname, "../frontend-common/build")));
+//   app.get("*", (req, res) => {
+//     res.sendFile(
+//       path.resolve(__dirname, "../frontend-common/build/index.html")
+//     );
+//   });
+// }
 
 process.on("unhandledRejection", (err) => {
   console.log(`Error : ${err.message}`);
