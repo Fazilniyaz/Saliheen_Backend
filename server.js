@@ -19,12 +19,12 @@ const app = require("./app");
 app.use(
   cors({
     origin: [
-      "https://chronocrafts.xyz",
-      "https://www.chronocrafts.xyz",
+      "https://saliheenperfumes.com",
+      "https://www.saliheenperfumes.com",
       "http://localhost:5173",
       "http://localhost:3000",
-      "http://chronocrafts.xyz",
-      "https://api.chronocrafts.xyz",
+      "http://saliheenperfumes.com",
+      "https://api.saliheenperfumes.com",
       "https://chrono-craft-mern-frontend-production.vercel.app",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
