@@ -48,7 +48,7 @@ const orderSchema = mongoose.Schema({
       },
       price: {
         type: Number,
-        required: true,
+        // required: true,
       },
       product: {
         type: mongoose.SchemaTypes.ObjectId,
