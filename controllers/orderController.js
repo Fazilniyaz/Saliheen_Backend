@@ -18,9 +18,20 @@ exports.newOrder = catchAsyncError(async (req, res, next) => {
     taxPrice,
   } = req.body;
 
+  let type = "Perfume";
+
   // Iterate through orderItems and update stock for each product
   for (const item of orderItems) {
     const product = await Watch.findById(item.product);
+
+    if (
+      product.price3mlAttar == totalPrice ||
+      product.price6mlAttar == totalPrice ||
+      product.price12mlAttar == totalPrice ||
+      product.price24mlAttar == totalPrice
+    ) {
+      type = "Attar";
+    }
 
     if (!product) {
       return next(
@@ -35,9 +46,12 @@ exports.newOrder = catchAsyncError(async (req, res, next) => {
       );
     }
 
-    // Deduct quantity from stock
-    product.stock -= item.quantity;
-
+    if (type == "Perfume") {
+      let originalQuantity = item.quantity / 2;
+      product.stock -= originalQuantity;
+    } else {
+      product.stock -= item.quantity;
+    }
     // Save updated product
     await product.save({ validateBeforeSave: false });
   }
