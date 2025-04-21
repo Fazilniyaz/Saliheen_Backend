@@ -4,6 +4,28 @@ const Errorhandler = require("../utils/errorHandler");
 const sendToken = require("../utils/jwt");
 const sendEmail = require("../utils/email");
 const crypto = require("crypto");
+// const twilio = require("twilio");
+
+// exports.sendOtpToNumber = catchAsyncError(async (req, res, next) => {
+//   const { to, message } = req.body;
+
+//   const client = twilio(
+//     process.env.TWILIO_ACCOUNT_SID,
+//     process.env.TWILIO_AUTH_TOKEN
+//   );
+
+//   try {
+//     const response = await client.messages.create({
+//       body: message,
+//       from: process.env.TWILIO_PHONE_NUMBER,
+//       to: to,
+//     });
+
+//     res.status(200).json({ success: true, sid: response.sid });
+//   } catch (error) {
+//     res.status(500).json({ success: false, error: error.message });
+//   }
+// });
 
 //User Registration - http://localhost:8000/api/v1/register
 exports.registerUser = catchAsyncError(async (req, res, next) => {
@@ -165,7 +187,7 @@ exports.forgotPassword = catchAsyncError(async (req, res, next) => {
   try {
     sendEmail({
       email: user.email,
-      subject: "ChronoCraft password link",
+      subject: "Saliheen Perfumes reset password link",
       message,
     });
     res.status(200).json({
@@ -381,8 +403,8 @@ exports.sendOtp = catchAsyncError(async (req, res, next) => {
   try {
     sendEmail({
       email: email,
-      subject: "ChronoCraft Validation",
-      message: `Here is Your OTP for your ChronoCraft registration ${otp}`,
+      subject: "Saliheen Validation",
+      message: `Here is Your OTP for your Saliheen registration ${otp}`,
     });
     res.status(200).json({
       success: true,
