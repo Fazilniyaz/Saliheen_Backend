@@ -182,7 +182,7 @@ exports.forgotPassword = catchAsyncError(async (req, res, next) => {
   }
 
   const resetUrl = `${BASE_URL}/password/reset/${resetToken}`;
-  var message = `Your password reset url is as follow\n\n${resetUrl}\n\n If you have not requested then Ignore it.`;
+  var message = `Your password reset url is as follow...\n\n${resetUrl}\n\n If you have not requested then Ignore it.`;
 
   try {
     sendEmail({
