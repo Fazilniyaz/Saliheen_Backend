@@ -74,7 +74,7 @@ exports.registerUser = catchAsyncError(async (req, res, next) => {
 
 //User Login - http://localhost:8000/api/v1/login
 exports.loginUser = catchAsyncError(async (req, res, next) => {
-  const { email, password } = req.body;
+  const { email, password, localCart } = req.body;
 
   if (!email || !password) {
     return next(new Errorhandler("Please enter all the credintials", 400));
@@ -85,6 +85,42 @@ exports.loginUser = catchAsyncError(async (req, res, next) => {
   if (!user) {
     return next(new Errorhandler("Invalid credintials", 401));
   }
+
+  const userId = user._id;
+
+  let message = "Cart items Updated!";
+
+  const localCartData =
+    localCart.length > 0
+      ? localCart.map((item) => ({
+          itemName: item.itemName,
+          userId: userId,
+          productId: item.productId,
+          stock: item.stock,
+          quantity: item.quantity,
+          finalPrice: item.finalPrice,
+        }))
+      : "";
+
+  const revisedLocalCart =
+    localCart.length > 0
+      ? localCartData.map((item) => (item.quantity < item.stock ? item : ""))
+      : "";
+
+  // if (
+  //   localCart.type != "attar" &&
+  //   localCart.type != "perfume" &&
+  //   localCart.type != "Attar" &&
+  //   localCart.type != "Perfume"
+  // ) {
+  //   message = "Invalid Type or Specaify your Type";
+  // }
+
+  const cartItems = await Cart.find({ userId });
+
+  const finalCartItems = [...cartItems, ...revisedLocalCart];
+
+  updatedCartItems = await Cart.insertMany(revisedLocalCart);
 
   if (user.blocked) {
     return next(new Errorhandler("User is blocked", 403)); // User is blocked
