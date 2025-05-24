@@ -4,6 +4,8 @@ const Errorhandler = require("../utils/errorHandler");
 const sendToken = require("../utils/jwt");
 const sendEmail = require("../utils/email");
 const crypto = require("crypto");
+const Cart = require("../models/cartModal");
+
 // const twilio = require("twilio");
 
 // exports.sendOtpToNumber = catchAsyncError(async (req, res, next) => {
