@@ -88,41 +88,41 @@ exports.loginUser = catchAsyncError(async (req, res, next) => {
     return next(new Errorhandler("Invalid credintials", 401));
   }
 
-  const userId = user._id;
+  // const userId = user._id;
 
-  if (localCart) {
-    const localCartData =
-      localCart?.length > 0
-        ? localCart.map((item) => ({
-            itemName: item?.itemName,
-            userId: userId,
-            productId: item?.productId,
-            stock: item?.stock,
-            quantity: item?.quantity,
-            finalPrice: item?.finalPrice,
-          }))
-        : "";
+  // if (localCart) {
+  //   const localCartData =
+  //     localCart?.length > 0
+  //       ? localCart.map((item) => ({
+  //           itemName: item?.itemName,
+  //           userId: userId,
+  //           productId: item?.productId,
+  //           stock: item?.stock,
+  //           quantity: item?.quantity,
+  //           finalPrice: item?.finalPrice,
+  //         }))
+  //       : "";
 
-    const revisedLocalCart =
-      localCart.length > 0
-        ? localCartData.map((item) => (item.quantity < item.stock ? item : ""))
-        : "";
+  //   const revisedLocalCart =
+  //     localCart.length > 0
+  //       ? localCartData.map((item) => (item.quantity < item.stock ? item : ""))
+  //       : "";
 
-    // if (
-    //   localCart.type != "attar" &&
-    //   localCart.type != "perfume" &&
-    //   localCart.type != "Attar" &&
-    //   localCart.type != "Perfume"
-    // ) {
-    //   message = "Invalid Type or Specaify your Type";
-    // }
+  // if (
+  //   localCart.type != "attar" &&
+  //   localCart.type != "perfume" &&
+  //   localCart.type != "Attar" &&
+  //   localCart.type != "Perfume"
+  // ) {
+  //   message = "Invalid Type or Specaify your Type";
+  // }
 
-    const cartItems = await Cart.find({ userId });
+  //   const cartItems = await Cart.find({ userId });
 
-    const finalCartItems = [...cartItems, ...revisedLocalCart];
+  //   const finalCartItems = [...cartItems, ...revisedLocalCart];
 
-    updatedCartItems = await Cart.insertMany(revisedLocalCart);
-  }
+  //   updatedCartItems = await Cart.insertMany(revisedLocalCart);
+  // }
 
   if (user.blocked) {
     return next(new Errorhandler("User is blocked", 403)); // User is blocked
