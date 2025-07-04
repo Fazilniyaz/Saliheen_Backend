@@ -9,8 +9,7 @@ const connectDatabase = require("./config/database");
 const authRoutes = require("./routes/authRoutes");
 const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
-import Blog from "./models/BlogModel.js";
-
+const Blog = require("./models/blogModel");
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "config/config.env") });
 
