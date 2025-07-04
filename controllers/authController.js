@@ -183,7 +183,7 @@ exports.forgotPassword = catchAsyncError(async (req, res, next) => {
     BASE_URL = `${req.protocol}://${req.get("host")}`;
   }
 
-  const resetUrl = `${BASE_URL}/password/reset/${resetToken}`;
+  const resetUrl = `https://saliheenperfumes.com/password/reset/${resetToken}`;
   var message = `Your password reset url is as follow...\n\n${resetUrl}\n\n If you have not requested then Ignore it.`;
 
   try {

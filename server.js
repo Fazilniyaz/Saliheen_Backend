@@ -60,6 +60,7 @@ const razorpay = new Razorpay({
 });
 
 app.post("/create-order", async (req, res) => {
+  console.log(req.body);
   const options = {
     amount: req.body.amount * 100, // Amount in paise (e.g., 50000 paise = ₹500)
     currency: "INR",
@@ -91,6 +92,34 @@ app.post("/verify-payment", async (req, res) => {
     res
       .status(400)
       .json({ status: "failure", message: "Payment verification failed!" });
+  }
+});
+
+app.post("/fazil-blogs", async (req, res) => {
+  try {
+    const { title, content } = req.body;
+
+    if (!title || !content) {
+      return res
+        .status(400)
+        .json({ message: "Title and content are required." });
+    }
+
+    const blog = new Blog({ title, content });
+    await blog.save();
+
+    res.status(201).json({ message: "Blog created successfully", blog });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+app.get("/fazil-blogs", async (req, res) => {
+  try {
+    const blogs = await Blog.find().sort({ createdAt: -1 }); // Newest first
+    res.status(200).json(blogs);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
   }
 });
 
