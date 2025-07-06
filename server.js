@@ -9,7 +9,7 @@ const connectDatabase = require("./config/database");
 const authRoutes = require("./routes/authRoutes");
 const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
-const Blog = require("./models/blogModel");
+// const Blog = require("./models/blogModel");
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "config/config.env") });
 
@@ -96,33 +96,33 @@ app.post("/verify-payment", async (req, res) => {
   }
 });
 
-app.post("/fazil-blogs", async (req, res) => {
-  try {
-    const { title, content } = req.body;
+// app.post("/fazil-blogs", async (req, res) => {
+//   try {
+//     const { title, content } = req.body;
 
-    if (!title || !content) {
-      return res
-        .status(400)
-        .json({ message: "Title and content are required." });
-    }
+//     if (!title || !content) {
+//       return res
+//         .status(400)
+//         .json({ message: "Title and content are required." });
+//     }
 
-    const blog = new Blog({ title, content });
-    await blog.save();
+//     const blog = new Blog({ title, content });
+//     await blog.save();
 
-    res.status(201).json({ message: "Blog created successfully", blog });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-});
+//     res.status(201).json({ message: "Blog created successfully", blog });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// });
 
-app.get("/fazil-blogs", async (req, res) => {
-  try {
-    const blogs = await Blog.find().sort({ createdAt: -1 }); // Newest first
-    res.status(200).json(blogs);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
-  }
-});
+// app.get("/fazil-blogs", async (req, res) => {
+//   try {
+//     const blogs = await Blog.find().sort({ createdAt: -1 }); // Newest first
+//     res.status(200).json(blogs);
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// });
 
 const errorMiddleware = require("./middleware/error");
 app.use(errorMiddleware);
