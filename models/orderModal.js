@@ -77,6 +77,13 @@ const orderSchema = mongoose.Schema({
     required: true,
     default: 0.0,
   },
+  noOfBottles: {
+    type: Number,
+    default: 1,
+  },
+  pricePerBottle: {
+    type: Number,
+  },
   paymentInfo: {
     id: {
       type: String,
