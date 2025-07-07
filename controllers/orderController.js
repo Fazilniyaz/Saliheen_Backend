@@ -16,8 +16,8 @@ exports.newOrder = catchAsyncError(async (req, res, next) => {
     totalPrice,
     itemPrice,
     taxPrice,
-    noOfBottles,
-    pricePerBottle,
+    // noOfBottles,
+    // pricePerBottle,
   } = req.body;
 
   let type = "Perfume";
@@ -67,8 +67,8 @@ exports.newOrder = catchAsyncError(async (req, res, next) => {
     totalPrice,
     itemPrice,
     taxPrice,
-    noOfBottles,
-    pricePerBottle,
+    // noOfBottles,
+    // pricePerBottle,
     paidAt: Date.now(),
     user: req.user.id,
   });
