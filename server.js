@@ -56,8 +56,8 @@ app.use("/api/v1", payment);
 app.use("/paypal", paypal);
 
 const razorpay = new Razorpay({
-  key_id: "rzp_test_x0DSx4zqJLuGm0",
-  key_secret: "kpXknJ1L4LQlrsjP9oWNpHjX",
+  key_id: "rzp_live_QNoqNSpHzqg5ox",
+  key_secret: "Kl9Sgr84FSwRgredy3IhkHxe",
 });
 
 app.post("/create-order", async (req, res) => {
