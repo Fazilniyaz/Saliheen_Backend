@@ -65,6 +65,7 @@ exports.newProduct = catchAsyncError(async (req, res, next) => {
   if (req.files.length > 0) {
     req.files.forEach((file) => {
       let url = `${BASE_URL}/uploads/product/${file.originalname}`;
+      console.log(url);
       images.push({ image: url });
     });
   }
@@ -98,6 +99,7 @@ exports.updateProduct = async (req, res, next) => {
   if (req.files?.length > 0) {
     req.files.forEach((file) => {
       let url = `${BASE_URL}/uploads/product/${file.originalname}`;
+      console.log(url);
       images.push({ image: url });
     });
   }
