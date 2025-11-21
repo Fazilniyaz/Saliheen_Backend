@@ -27,6 +27,7 @@ app.use(
       "http://localhost:3000",
       "http://saliheenperfumes.com",
       "https://api.saliheenperfumes.com",
+      "https://saliheenperfumes-zd2i.onrender.com",
       "https://chrono-craft-mern-frontend-production.vercel.app",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
