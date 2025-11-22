@@ -25,6 +25,7 @@ app.use(
       "https://www.saliheenperfumes.com",
       "http://localhost:5173",
       "http://localhost:3000",
+      "http://localhost:8000",
       "http://saliheenperfumes.com",
       "https://api.saliheenperfumes.com",
       "https://saliheenperfumes-zd2i.onrender.com",

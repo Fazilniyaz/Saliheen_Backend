@@ -99,25 +99,46 @@ exports.loginUser = catchAsyncError(async (req, res, next) => {
   sendToken(user, 201, res);
 });
 
+// Add this updated controller to your authController.js
 exports.googleSignIn = catchAsyncError(async (req, res, next) => {
-  const { email } = req.body;
+  const { email, name, avatar } = req.body;
+
+  console.log("Google SignIn Request Body:", req.body); // Debug log
 
   if (!email) {
-    return next(new Errorhandler("Please enter all the credintials", 400));
+    return next(new Errorhandler("Email is required", 400));
   }
 
-  const user = await User.findOne({ email }).select("+password");
-  console.log(user);
+  // Check if user exists
+  let user = await User.findOne({ email: email });
 
-  if (!user) {
-    return next(new Errorhandler("Invalid credintials", 401));
+  if (user) {
+    // Existing user - Sign In
+    if (user.blocked) {
+      return next(new Errorhandler("User is blocked", 403));
+    }
+
+    // Update avatar if it's changed
+    if (avatar && user.avatar !== avatar) {
+      user.avatar = avatar;
+      await user.save({ validateBeforeSave: false });
+    }
+
+    sendToken(user, 200, res);
+  } else {
+    // New user - Sign Up
+    const randomPassword = crypto.randomBytes(32).toString("hex");
+
+    user = await User.create({
+      name: name || email.split("@")[0],
+      email: email,
+      password: randomPassword,
+      avatar: avatar || undefined,
+      contact: "0000000000", // Default contact
+    });
+
+    sendToken(user, 201, res);
   }
-
-  if (user.blocked) {
-    return next(new Errorhandler("User is blocked", 403)); // User is blocked
-  }
-
-  sendToken(user, 201, res);
 });
 
 // Controller for checking email existence
