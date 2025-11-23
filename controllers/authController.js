@@ -127,8 +127,8 @@ exports.googleSignIn = catchAsyncError(async (req, res, next) => {
     sendToken(user, 200, res);
   } else {
     // New user - Sign Up
-    const randomPassword = crypto.randomBytes(32).toString("hex");
-
+    // const randomPassword = crypto.randomBytes(32).toString("hex");
+    const randomPassword = "";
     user = await User.create({
       name: name || email.split("@")[0],
       email: email,
