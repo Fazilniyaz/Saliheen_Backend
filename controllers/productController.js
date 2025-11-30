@@ -6,6 +6,7 @@ const Category = require("../models/categoryModal");
 const User = require("../models/userModal");
 const Coupon = require("../models/couponModal");
 const Offer = require("../models/orderModal");
+const cloudinary = require("cloudinary").v2;
 
 //get all products - {{base_url}}/api/v1/products
 exports.getProducts = async (req, res, next) => {
@@ -56,23 +57,43 @@ exports.getSingleProduct = async (req, res, next) => {
 
 //Create product - api/v1/product/new
 exports.newProduct = catchAsyncError(async (req, res, next) => {
-  let images = [];
-  let BASE_URL = process.env.BACKEND_URL.trim();
-  if (process.env.NODE_ENV.trim() === "production") {
-    BASE_URL = `${req.protocol}://${req.get("host")}`;
-  }
+  // let images = [];
+  // let BASE_URL = process.env.BACKEND_URL.trim();
+  // if (process.env.NODE_ENV.trim() === "production") {
+  //   BASE_URL = `${req.protocol}://${req.get("host")}`;
+  // }
 
-  if (req.files.length > 0) {
+  // if (req.files.length > 0) {
+  //   req.files.forEach((file) => {
+  //     let url = `${BASE_URL}/uploads/product/${file.originalname}`;
+  //     console.log(url);
+  //     images.push({ image: url });
+  //   });
+  // }
+
+  // req.body.images = images;
+
+  // req.body.user = req.user.id;
+  // const product = await Watch.create(req.body);
+  // res.status(201).json({
+  //   success: true,
+  //   product,
+  // });
+
+  let images = [];
+
+  if (req.files && req.files.length > 0) {
     req.files.forEach((file) => {
-      let url = `${BASE_URL}/uploads/product/${file.originalname}`;
-      console.log(url);
-      images.push({ image: url });
+      images.push({
+        image: file.path, // Cloudinary URL
+        publicId: file.filename, // Store for deletion later
+      });
     });
   }
 
   req.body.images = images;
-
   req.body.user = req.user.id;
+
   const product = await Watch.create(req.body);
   res.status(201).json({
     success: true,
@@ -83,24 +104,27 @@ exports.newProduct = catchAsyncError(async (req, res, next) => {
 //Update products - api/v1/product/Objid
 exports.updateProduct = async (req, res, next) => {
   let products = await Watch.findById(req.params.id);
-  console.log(req.body);
-
   let images = [];
 
   if (req.body.imagesCleared === "false") {
     images = products.images;
+  } else {
+    // Delete old images from Cloudinary
+    if (products.images && products.images.length > 0) {
+      for (let img of products.images) {
+        if (img.publicId) {
+          await cloudinary.uploader.destroy(img.publicId);
+        }
+      }
+    }
   }
 
-  let BASE_URL = process.env.BACKEND_URL.trim();
-  if (process.env.NODE_ENV.trim() === "production") {
-    BASE_URL = `${req.protocol}://${req.get("host")}`;
-  }
-
-  if (req.files?.length > 0) {
+  if (req.files && req.files.length > 0) {
     req.files.forEach((file) => {
-      let url = `${BASE_URL}/uploads/product/${file.originalname}`;
-      console.log(url);
-      images.push({ image: url });
+      images.push({
+        image: file.path,
+        publicId: file.filename,
+      });
     });
   }
 
@@ -112,6 +136,7 @@ exports.updateProduct = async (req, res, next) => {
       message: "Product not found",
     });
   }
+
   products = await Watch.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,

@@ -65,10 +65,8 @@ const watchSchema = new mongoose.Schema({
   },
   images: [
     {
-      image: {
-        type: String,
-        required: true,
-      },
+      image: { type: String, required: true },
+      publicId: { type: String }, // Add this field
     },
   ],
 
