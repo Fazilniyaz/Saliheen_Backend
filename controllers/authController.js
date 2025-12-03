@@ -6,56 +6,32 @@ const sendEmail = require("../utils/email");
 const crypto = require("crypto");
 const Cart = require("../models/cartModal");
 
-// const twilio = require("twilio");
-
-// exports.sendOtpToNumber = catchAsyncError(async (req, res, next) => {
-//   const { to, message } = req.body;
-
-//   const client = twilio(
-//     process.env.TWILIO_ACCOUNT_SID,
-//     process.env.TWILIO_AUTH_TOKEN
-//   );
-
-//   try {
-//     const response = await client.messages.create({
-//       body: message,
-//       from: process.env.TWILIO_PHONE_NUMBER,
-//       to: to,
-//     });
-
-//     res.status(200).json({ success: true, sid: response.sid });
-//   } catch (error) {
-//     res.status(500).json({ success: false, error: error.message });
-//   }
-// });
-
 //User Registration - http://localhost:8000/api/v1/register
 exports.registerUser = catchAsyncError(async (req, res, next) => {
   const { name, email, password, contact } = req.body;
 
-  console.log(req.body);
-
-  // Regular expression for password validation
+  // Password validation regex
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
-  if (false) {
-    return next(
-      new Errorhandler(
-        "Password must be at least 8 characters long and include one uppercase letter, one number, and one special character.",
-        400
-      )
-    );
-  }
+  // Uncomment if you want password validation
+  // if (!passwordRegex.test(password)) {
+  //   return next(
+  //     new Errorhandler(
+  //       "Password must be at least 8 characters long and include one uppercase letter, one number, and one special character.",
+  //       400
+  //     )
+  //   );
+  // }
 
-  if (contact.length !== 10) {
+  if (contact && contact.length !== 10) {
     return next(new Errorhandler("Contact number must be of 10 digits", 400));
   }
 
   let avatar;
+  let BASE_URL = process.env.BACKEND_URL?.trim() || "";
 
-  let BASE_URL = process.env.BACKEND_URL.trim();
-  if (process.env.NODE_ENV.trim() === "production") {
+  if (process.env.NODE_ENV?.trim() === "production") {
     BASE_URL = `${req.protocol}://${req.get("host")}`;
   }
 
@@ -79,31 +55,31 @@ exports.loginUser = catchAsyncError(async (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return next(new Errorhandler("Please enter all the credintials", 400));
+    return next(new Errorhandler("Please enter all the credentials", 400));
   }
 
   const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
-    return next(new Errorhandler("Invalid credintials", 401));
+    return next(new Errorhandler("Invalid credentials", 401));
   }
 
   if (user.blocked) {
-    return next(new Errorhandler("User is blocked", 403)); // User is blocked
+    return next(new Errorhandler("User is blocked", 403));
   }
 
   if (!(await user.isValidPassword(password))) {
-    return next(new Errorhandler("Invalid credintials", 401));
+    return next(new Errorhandler("Invalid credentials", 401));
   }
 
-  sendToken(user, 201, res);
+  sendToken(user, 200, res);
 });
 
-// Add this updated controller to your authController.js
+// FIXED: Google Sign-In with proper user creation/login
 exports.googleSignIn = catchAsyncError(async (req, res, next) => {
   const { email, name, avatar } = req.body;
 
-  console.log("Google SignIn Request Body:", req.body); // Debug log
+  console.log("Google SignIn Request Body:", req.body);
 
   if (!email) {
     return next(new Errorhandler("Email is required", 400));
@@ -127,8 +103,8 @@ exports.googleSignIn = catchAsyncError(async (req, res, next) => {
     sendToken(user, 200, res);
   } else {
     // New user - Sign Up
-    // const randomPassword = crypto.randomBytes(32).toString("hex");
     const randomPassword = "";
+
     user = await User.create({
       name: name || email.split("@")[0],
       email: email,
@@ -143,76 +119,68 @@ exports.googleSignIn = catchAsyncError(async (req, res, next) => {
 
 // Controller for checking email existence
 exports.checkEmailExistence = catchAsyncError(async (req, res, next) => {
-  try {
-    const { email } = req.body;
+  const { email } = req.body;
 
-    // Validate input
-    if (!email) {
-      return res.status(400).json({
-        success: false,
-        message: "Email is required",
-      });
-    }
-
-    // Check if the email already exists in the database
-    const existingUser = await User.findOne({ email });
-
-    if (existingUser) {
-      return res.status(200).json({
-        success: false,
-        message: "Email is already registered",
-      });
-    }
-
-    // If email does not exist, return success
-    return res.status(200).json({
-      success: true,
-      message: "Email is available for registration",
-    });
-  } catch (error) {
-    // Handle server errors
-    console.error("Error checking email:", error);
-    return res.status(500).json({
+  if (!email) {
+    return res.status(400).json({
       success: false,
-      message: "Server error. Please try again later.",
+      message: "Email is required",
     });
   }
+
+  const existingUser = await User.findOne({ email });
+
+  if (existingUser) {
+    return res.status(200).json({
+      success: false,
+      message: "Email is already registered",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Email is available for registration",
+  });
 });
 
-//User Logout - {{base_url}}/api/v1/logout
-exports.logoutUser = (req, res, user) => {
+// CRITICAL FIX: Proper logout with cookie clearing
+exports.logoutUser = (req, res, next) => {
+  // Clear the token cookie with proper options
   res.cookie("token", null, {
     expires: new Date(Date.now()),
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // Use secure cookies in production
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    path: "/",
   });
+
   res.status(200).json({
-    sucess: true,
-    message: "Logged out !",
+    success: true,
+    message: "Logged out successfully",
   });
 };
 
-//Forgot Password = {{base_url}}/api/v1/password/forgot
+//Forgot Password
 exports.forgotPassword = catchAsyncError(async (req, res, next) => {
   const user = await User.findOne({ email: req.body.email });
+
   if (!user) {
-    return next(new Errorhandler("user not found", 404));
+    return next(new Errorhandler("User not found", 404));
   }
+
   const resetToken = user.getResetToken();
-  await user.save({ validationBeforeSave: false });
-  let BASE_URL = process.env.FRONTEND_URL.trim();
-  if (process.env.NODE_ENV.trim() === "production") {
-    BASE_URL = `${req.protocol}://${req.get("host")}`;
-  }
+  await user.save({ validateBeforeSave: false });
 
   const resetUrl = `https://saliheenperfumes.com/password/reset/${resetToken}`;
-  var message = `Your password reset url is as follow...\n\n${resetUrl}\n\n If you have not requested then Ignore it.`;
+  const message = `Your password reset url is as follow...\n\n${resetUrl}\n\nIf you have not requested then ignore it.`;
 
   try {
-    sendEmail({
+    await sendEmail({
       email: user.email,
       subject: "Saliheen Perfumes reset password link",
       message,
     });
+
     res.status(200).json({
       success: true,
       message: `Email sent to ${user.email}`,
@@ -221,11 +189,11 @@ exports.forgotPassword = catchAsyncError(async (req, res, next) => {
     user.resetPasswordToken = undefined;
     user.resetPasswordTokenExpire = undefined;
     await user.save({ validateBeforeSave: false });
-    return next(new Errorhandler(error.message), 500);
+    return next(new Errorhandler(error.message, 500));
   }
 });
 
-//Reset Password Link - {{base_url}}/api/v1/password/reset/b23426294b9b8bd188ec165209207efb678bb02a
+//Reset Password
 exports.resetPassword = catchAsyncError(async (req, res, next) => {
   const resetPasswordToken = crypto
     .createHash("sha256")
@@ -238,19 +206,31 @@ exports.resetPassword = catchAsyncError(async (req, res, next) => {
   });
 
   if (!user) {
-    return next(new Errorhandler("Password reset link expired"));
+    return next(
+      new Errorhandler("Password reset link expired or invalid", 400)
+    );
+  }
+
+  if (req.body.password !== req.body.confirmPassword) {
+    return next(new Errorhandler("Passwords do not match", 400));
   }
 
   user.password = req.body.password;
   user.resetPasswordToken = undefined;
+  user.resetPasswordTokenExpire = undefined;
+
   await user.save({ validateBeforeSave: false });
-  sendToken(user, 201, res);
+
+  sendToken(user, 200, res);
 });
 
-//getProfile - api/v1/myProfile
-//COmmented out for testing
+//Get User Profile
 exports.getUserProfile = catchAsyncError(async (req, res, next) => {
   const user = await User.findById(req.user.id);
+
+  if (!user) {
+    return next(new Errorhandler("User not found", 404));
+  }
 
   res.status(200).json({
     success: true,
@@ -258,34 +238,38 @@ exports.getUserProfile = catchAsyncError(async (req, res, next) => {
   });
 });
 
-// Password change By User- api/v1/password/change
+// Password change By User
 exports.changepassword = catchAsyncError(async (req, res, next) => {
   const user = await User.findById(req.user.id).select("+password");
+
   if (!(await user.isValidPassword(req.body.oldPassword))) {
     return next(new Errorhandler("Old password is incorrect", 401));
   }
 
   user.password = req.body.password;
   await user.save();
-  res.status(200).json({ success: true });
+
+  res.status(200).json({
+    success: true,
+    message: "Password changed successfully",
+  });
 });
 
-//Updating user's details By User - /api/v1/update
+//Updating user's details
 exports.updateProfile = catchAsyncError(async (req, res, next) => {
   let newUserData = {
     name: req.body.name,
     email: req.body.email,
   };
 
-  let avatar;
+  let BASE_URL = process.env.BACKEND_URL?.trim() || "";
 
-  let BASE_URL = process.env.BACKEND_URL.trim();
-  if (process.env.NODE_ENV.trim() === "production") {
+  if (process.env.NODE_ENV?.trim() === "production") {
     BASE_URL = `${req.protocol}://${req.get("host")}`;
   }
 
   if (req.file) {
-    avatar = `${BASE_URL}/uploads/user/${req.file.originalname}`;
+    const avatar = `${BASE_URL}/uploads/user/${req.file.originalname}`;
     newUserData = { ...newUserData, avatar };
   }
 
@@ -303,6 +287,7 @@ exports.updateProfile = catchAsyncError(async (req, res, next) => {
 //Admin Routes
 exports.getAllUsers = catchAsyncError(async (req, res, next) => {
   const users = await User.find();
+
   res.status(200).json({
     success: true,
     users,
@@ -311,9 +296,10 @@ exports.getAllUsers = catchAsyncError(async (req, res, next) => {
 
 exports.getUser = catchAsyncError(async (req, res, next) => {
   const user = await User.findById(req.params.id);
+
   if (!user) {
     return next(
-      new Errorhandler(`User not found with this id : ${req.params.id}`)
+      new Errorhandler(`User not found with this id: ${req.params.id}`, 404)
     );
   }
 
@@ -343,29 +329,31 @@ exports.updateUser = catchAsyncError(async (req, res, next) => {
 
 exports.deleteUser = catchAsyncError(async (req, res, next) => {
   const user = await User.findByIdAndDelete(req.params.id);
-  console.log(user);
+
   if (!user) {
     return next(
-      new Errorhandler(`user not found with this id : ${req.params.id}`)
+      new Errorhandler(`User not found with this id: ${req.params.id}`, 404)
     );
   }
+
   res.status(200).json({
     success: true,
+    message: "User deleted successfully",
   });
 });
 
 exports.blockUser = catchAsyncError(async (req, res, next) => {
   const user = await User.findById(req.params.id);
+
   if (!user) {
     return next(new Errorhandler("User not found", 404));
   }
 
-  // Only admin can block a user
   if (user.role === "admin") {
     return next(new Errorhandler("Admin cannot be blocked", 400));
   }
 
-  user.blocked = true; // Block the user
+  user.blocked = true;
   await user.save();
 
   res.status(200).json({
@@ -376,18 +364,12 @@ exports.blockUser = catchAsyncError(async (req, res, next) => {
 
 exports.unblockUser = catchAsyncError(async (req, res, next) => {
   const user = await User.findById(req.params.id);
+
   if (!user) {
     return next(new Errorhandler("User not found", 404));
   }
 
-  // Only admin can unblock a user
-  if (user.role === "admin") {
-    return next(
-      new Errorhandler("Admin cannot be unblocked by this route", 400)
-    );
-  }
-
-  user.blocked = false; // Unblock the user
+  user.blocked = false;
   await user.save();
 
   res.status(200).json({
@@ -396,103 +378,83 @@ exports.unblockUser = catchAsyncError(async (req, res, next) => {
   });
 });
 
-// const sendOtp = require("../utils/otp"); // Utility to send OTP (you can use nodemailer or similar)
-
-// Store OTP and expiration time
+// OTP functionality
 exports.sendOtp = catchAsyncError(async (req, res, next) => {
   const { email } = req.body;
 
-  // Check if email is provided
   if (!email) {
     return next(new Errorhandler("Email is required", 400));
   }
 
-  // Check if email already exists in the database
   const userExists = await User.findOne({ email });
   if (userExists) {
     return next(new Errorhandler("Email is already registered", 400));
   }
 
-  // Generate a 6-digit OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const otpExpiry = Date.now() + 10 * 60 * 1000; // OTP valid for 10 minutes
+  const otpExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
 
+  // Store in environment (not recommended for production - use Redis or DB)
   process.env.LAST_SEND_OTP = otp;
   process.env.LAST_SEND_EMAIL = email;
 
-  // Save the OTP and expiry to the database
-  // await User.updateOne({ email }, { otp, otpExpiry }, { upsert: true }); // Create new user if not exists
-
-  // Send the OTP email
   try {
-    sendEmail({
+    await sendEmail({
       email: email,
       subject: "Saliheen Validation",
-      message: `Here is Your OTP for your Saliheen registration ${otp}`,
+      message: `Here is Your OTP for your Saliheen registration: ${otp}`,
     });
+
     res.status(200).json({
       success: true,
       message: `OTP sent to ${email}`,
-      helo: process.env.LAST_SEND_OTP,
-      otp,
     });
   } catch (error) {
-    return next(new Errorhandler(error.message), 500);
+    return next(new Errorhandler(error.message, 500));
   }
 });
 
 exports.verifyOtp = catchAsyncError(async (req, res, next) => {
   const { email, otp } = req.body;
-  console.log(email, process.env.LAST_SEND_EMAIL);
-  console.log(otp, process.env.LAST_SEND_OTP);
 
   if (
-    email === process.env.LAST_SEND_EMAIL.trim() &&
-    otp == process.env.LAST_SEND_OTP.trim()
+    email === process.env.LAST_SEND_EMAIL?.trim() &&
+    otp == process.env.LAST_SEND_OTP?.trim()
   ) {
-    res.status(200).send({
+    res.status(200).json({
       success: true,
       message: "Successfully Verified!",
     });
+
+    // Clear stored OTP
     process.env.LAST_SEND_EMAIL = null;
     process.env.LAST_SEND_OTP = null;
   } else {
-    res.status(400).send({
+    res.status(400).json({
       success: false,
       message: "Invalid OTP",
     });
   }
 });
 
-// In your backend routes or controllers
-exports.getWalletBalance = async (req, res) => {
-  try {
-    const userId = req.user.id; // Assuming you have middleware to authenticate and attach user ID
-    const user = await User.findById(userId);
+exports.getWalletBalance = catchAsyncError(async (req, res, next) => {
+  const user = await User.findById(req.user.id);
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.status(200).json({ wallet: user.wallet });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+  if (!user) {
+    return next(new Errorhandler("User not found", 404));
   }
-};
 
-exports.countUsers = async (req, res) => {
-  try {
-    const userCount = await User.countDocuments(); // Counts all users in the collection
-    res.status(200).json({
-      success: true,
-      userCount,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to count users",
-      error: error.message,
-    });
-  }
-};
+  res.status(200).json({
+    success: true,
+    wallet: user.wallet,
+  });
+});
+
+exports.countUsers = catchAsyncError(async (req, res, next) => {
+  const userCount = await User.countDocuments();
+
+  res.status(200).json({
+    success: true,
+    userCount,
+  });
+});

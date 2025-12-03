@@ -13,14 +13,15 @@ const crypto = require("crypto");
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "config/config.env") });
 
+// Connect to database
 connectDatabase();
 
 const app = require("./app");
 
-// CORS Configuration
-app.use(
-  cors({
-    origin: [
+// CRITICAL FIX: Proper CORS Configuration for session management
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = [
       "https://saliheenperfumes.com",
       "https://www.saliheenperfumes.com",
       "http://localhost:5173",
@@ -30,11 +31,30 @@ app.use(
       "https://api.saliheenperfumes.com",
       "https://saliheenperfumes-zd2i.onrender.com",
       "https://chrono-craft-mern-frontend-production.vercel.app",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    credentials: true,
-  })
-);
+    ];
+
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log("Blocked by CORS:", origin);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true, // CRITICAL: Allow cookies to be sent
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  exposedHeaders: ["set-cookie"], // Expose cookie headers
+  maxAge: 86400, // 24 hours
+};
+
+// Apply CORS before other middleware
+app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options("*", cors(corsOptions));
 
 const products = require("./routes/productRoutes");
 const orders = require("./routes/orderRoutes");
@@ -43,10 +63,11 @@ const cart = require("./routes/cartRoutes");
 const payment = require("./routes/paymentRoutes");
 const paypal = require("./routes/paypalRoutes");
 
+// IMPORTANT: Cookie parser must come before routes
+app.use(cookieParser());
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
-app.use(cookieParser());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
@@ -60,12 +81,11 @@ app.use("/api/v1", payment);
 app.use("/paypal", paypal);
 
 const razorpay = new Razorpay({
-  key_id: "rzp_live_QNoqNSpHzqg5ox",
-  key_secret: "Kl9Sgr84FSwRgredy3IhkHxe",
+  key_id: process.env.RAZORPAY_KEY_ID || "rzp_live_QNoqNSpHzqg5ox",
+  key_secret: process.env.RAZORPAY_KEY_SECRET || "Kl9Sgr84FSwRgredy3IhkHxe",
 });
 
-// RAZORPAY ROUTES - ENHANCED WITH LOGGING AND ERROR HANDLING
-
+// RAZORPAY ROUTES
 app.post("/create-order", async (req, res) => {
   try {
     console.log("=== CREATE ORDER REQUEST ===");
@@ -73,7 +93,6 @@ app.post("/create-order", async (req, res) => {
 
     const { amount, shippingInfo, customerName, customerPhone } = req.body;
 
-    // Validate required fields
     if (!amount || amount <= 0) {
       console.error("Invalid amount:", amount);
       return res.status(400).json({
@@ -130,7 +149,6 @@ app.post("/verify-payment", async (req, res) => {
 
     const { order_id, payment_id, signature } = req.body;
 
-    // Validate required fields
     if (!order_id || !payment_id || !signature) {
       console.error("Missing required fields for payment verification");
       return res.status(400).json({
@@ -139,7 +157,6 @@ app.post("/verify-payment", async (req, res) => {
       });
     }
 
-    // Create the expected signature
     const body = order_id + "|" + payment_id;
     const expectedSignature = crypto
       .createHmac("sha256", razorpay.key_secret)
@@ -149,7 +166,6 @@ app.post("/verify-payment", async (req, res) => {
     console.log("Expected signature:", expectedSignature);
     console.log("Received signature:", signature);
 
-    // Compare signatures
     if (expectedSignature === signature) {
       console.log("Payment verification successful!");
       console.log("Payment ID:", payment_id);
@@ -189,28 +205,18 @@ app.post("/verify-payment", async (req, res) => {
 const errorMiddleware = require("./middleware/error");
 app.use(errorMiddleware);
 
-// Start the server
-const PORT = process.env.PORT || 8000;
-const Server = app.listen(PORT, () => {
-  console.log(
-    `Server started running on port ${PORT} in ${
-      process.env.NODE_ENV || "development"
-    }`
-  );
-});
-
-process.on("unhandledRejection", (err) => {
-  console.log(`Error : ${err.message}`);
-  console.log(`Shutting down the server due to unhandled rejection`);
-  Server.close(() => {
-    process.exit(1);
+// IMPORTANT FOR VERCEL: Export the app for serverless
+// Don't use app.listen() in Vercel - it's handled by the platform
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 8000;
+  app.listen(PORT, () => {
+    console.log(
+      `Server started running on port ${PORT} in ${
+        process.env.NODE_ENV || "development"
+      }`
+    );
   });
-});
+}
 
-process.on("uncaughtException", (err) => {
-  console.log(`Error : ${err.message}`);
-  console.log(`Shutting down the server due to uncaught Errors`);
-  Server.close(() => {
-    process.exit(1);
-  });
-});
+// Export for Vercel
+module.exports = app;

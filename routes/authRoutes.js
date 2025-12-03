@@ -1,17 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const multer = require("multer");
-const path = require("path");
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, path.join(__dirname, "..", "uploads/user"));
-    },
-    filename: function (req, file, cb) {
-      cb(null, file.originalname);
-    },
-  }),
-});
+
+// IMPORTANT: Replace local file upload with Cloudinary
+const { uploadAvatar } = require("../config/cloudinary");
 
 const {
   registerUser,
@@ -41,32 +32,34 @@ const {
   authorizeRoles,
 } = require("../middleware/authenticate");
 
-router.route("/register").post(upload.single("avatar"), registerUser);
+// Public routes
+router.route("/register").post(uploadAvatar.single("avatar"), registerUser);
 router.route("/checkEmailExistence").post(checkEmailExistence);
 router.route("/login").post(loginUser);
 router.route("/google/signin").post(googleSignIn);
 router.route("/logout").get(logoutUser);
 router.route("/password/forgot").post(forgotPassword);
 router.route("/password/reset/:token").post(resetPassword);
+router.route("/register/otp").post(sendOtp);
+router.route("/register/otp/verify").post(verifyOtp);
+
+// Protected user routes
 router.route("/myProfile").get(isAuthenticatedUsers, getUserProfile);
 router.route("/password/change").put(isAuthenticatedUsers, changepassword);
 router.route("/getWalletBalance").get(isAuthenticatedUsers, getWalletBalance);
 router
   .route("/update")
-  .put(isAuthenticatedUsers, upload.single("avatar"), updateProfile);
+  .put(isAuthenticatedUsers, uploadAvatar.single("avatar"), updateProfile);
 
-//Admin Routes :
+// Admin routes
 router
   .route("/admin/users")
   .get(isAuthenticatedUsers, authorizeRoles("admin"), getAllUsers);
+
 router
   .route("/admin/user/:id")
-  .get(isAuthenticatedUsers, authorizeRoles("admin"), getUser);
-router
-  .route("/admin/user/:id")
-  .put(isAuthenticatedUsers, authorizeRoles("admin"), updateUser);
-router
-  .route("/admin/user/:id")
+  .get(isAuthenticatedUsers, authorizeRoles("admin"), getUser)
+  .put(isAuthenticatedUsers, authorizeRoles("admin"), updateUser)
   .delete(isAuthenticatedUsers, authorizeRoles("admin"), deleteUser);
 
 router
@@ -76,11 +69,9 @@ router
 router
   .route("/admin/userBlock/:id")
   .put(isAuthenticatedUsers, authorizeRoles("admin"), blockUser);
+
 router
   .route("/admin/userUnblock/:id")
   .put(isAuthenticatedUsers, authorizeRoles("admin"), unblockUser);
-
-router.route("/register/otp").post(sendOtp);
-router.route("/register/otp/verify").post(verifyOtp);
 
 module.exports = router;
