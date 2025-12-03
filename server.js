@@ -31,6 +31,7 @@ const corsOptions = {
       "https://api.saliheenperfumes.com",
       "https://saliheenperfumes-zd2i.onrender.com",
       "https://chrono-craft-mern-frontend-production.vercel.app",
+      "https://saliheenbackend.vercel.app",
     ];
 
     // Allow requests with no origin (mobile apps, Postman, etc.)
