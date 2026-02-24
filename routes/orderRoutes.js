@@ -20,7 +20,7 @@ const {
   authorizeRoles,
 } = require("../middleware/authenticate");
 
-router.route("/order/new").post(isAuthenticatedUsers, newOrder);
+router.route("/order/new").post( newOrder);
 router.route("/order/:id").get(isAuthenticatedUsers, getSingleOrder);
 router.route("/handleWallet").post(isAuthenticatedUsers, handleWallet);
 
