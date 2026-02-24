@@ -58,21 +58,21 @@ exports.newOrder = catchAsyncError(async (req, res, next) => {
     await product.save({ validateBeforeSave: false });
   }
 
-  // Create the order
-  const order = await Order.create({
-    orderItems,
-    shippingInfo,
-    shippingPrice,
-    paymentInfo,
-    totalPrice,
-    itemPrice,
-    taxPrice,
-    // noOfBottles,
-    // pricePerBottle,
-    paidAt: Date.now(),
-    user: req.user.id,
-  });
+const order = await Order.create({
+  orderItems,
+  shippingInfo,
+  shippingPrice,
+  paymentInfo,
+  totalPrice,
+  itemPrice,
+  taxPrice,
+  paidAt: Date.now(),
+  ...(req.user?.id && { user: req.user.id }),
+});
+
+if (req.user?.id) {
   await Cart.deleteMany({ userId: req.user.id });
+}
 
   res.status(200).json({ success: true, order });
 });
