@@ -9,6 +9,13 @@ const connectDatabase = require("./config/database");
 const authRoutes = require("./routes/authRoutes");
 const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
+const Order = require("./models/orderModal");
+const Watch = require("./models/productModal");
+const Cart = require("./models/cartModal");
+
+// In-memory store: razorpayOrderId -> { orderData, userId }
+const pendingOrders = {};
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, "config/config.env") });
@@ -25,7 +32,7 @@ app.use(
       "https://www.saliheenperfumes.com",
       "http://localhost:5173",
       "http://localhost:3000",
-      "http://localhost:8000",
+      "https://saliheenperfumes-zd2i.onrender.com",
       "http://saliheenperfumes.com",
       "https://api.saliheenperfumes.com",
       "https://saliheenperfumes-zd2i.onrender.com",
@@ -104,6 +111,23 @@ app.post("/create-order", async (req, res) => {
     console.log("Razorpay order created successfully:", response.id);
     console.log("=== END CREATE ORDER ===");
 
+    // Store pending order data keyed by Razorpay orderId
+    if (orderData) {
+      // Decode userId from JWT cookie if present
+      let userId = null;
+      try {
+        const token = req.cookies?.token;
+        if (token) {
+          const decoded = jwt.verify(token, process.env.JWT_SECRET);
+          userId = decoded.id;
+        }
+      } catch (e) {
+        // Guest checkout - no userId
+      }
+      pendingOrders[response.id] = { orderData, userId };
+      console.log("Stored pending order for:", response.id);
+    }
+
     res.json({
       orderId: response.id,
       amount: response.amount,
@@ -156,6 +180,68 @@ app.post("/verify-payment", async (req, res) => {
       console.log("Order ID:", order_id);
       console.log("=== END VERIFY PAYMENT ===");
 
+      // --- Create DB Order server-side ---
+      try {
+        const pending = pendingOrders[order_id];
+        if (pending) {
+          const { orderData, userId } = pending;
+
+          const orderItems = orderData.orderItems || [];
+
+          // Reduce stock for each product
+          for (const item of orderItems) {
+            const product = await Watch.findById(item.product);
+            if (product) {
+              const isAttar =
+                product.price3mlAttar === orderData.totalPrice ||
+                product.price6mlAttar === orderData.totalPrice ||
+                product.price12mlAttar === orderData.totalPrice ||
+                product.price24mlAttar === orderData.totalPrice;
+              const deduct = isAttar ? item.quantity : item.quantity / 2;
+              product.stock = Math.max(0, product.stock - deduct);
+              await product.save({ validateBeforeSave: false });
+            }
+          }
+
+          const newOrder = await Order.create({
+            orderItems,
+            shippingInfo: orderData.shippingInfo,
+            shippingPrice: orderData.shippingPrice,
+            taxPrice: orderData.taxPrice,
+            totalPrice: orderData.totalPrice,
+            itemPrice: orderData.itemsPrice,
+            paymentInfo: {
+              id: payment_id,
+              status: "succeeded",
+              type: "RAZORPAY",
+            },
+            paidAt: Date.now(),
+            ...(userId && { user: userId }),
+          });
+
+          // Clear user's DB cart if authenticated
+          if (userId) {
+            await Cart.deleteMany({ userId });
+          }
+
+          // Clean up pending order
+          delete pendingOrders[order_id];
+
+          console.log("DB Order created server-side:", newOrder._id);
+
+          return res.json({
+            status: "success",
+            message: "Payment verified and order created!",
+            paymentId: payment_id,
+            orderId: order_id,
+            dbOrderId: newOrder._id,
+          });
+        }
+      } catch (orderErr) {
+        console.error("Server-side order creation failed:", orderErr.message);
+        // Fall through — frontend will still attempt order creation
+      }
+
       res.json({
         status: "success",
         message: "Payment verified successfully!",
@@ -193,8 +279,7 @@ app.use(errorMiddleware);
 const PORT = process.env.PORT || 8000;
 const Server = app.listen(PORT, () => {
   console.log(
-    `Server started running on port ${PORT} in ${
-      process.env.NODE_ENV || "development"
+    `Server started running on port ${PORT} in ${process.env.NODE_ENV || "development"
     }`
   );
 });

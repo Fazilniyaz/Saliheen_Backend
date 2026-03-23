@@ -58,21 +58,21 @@ exports.newOrder = catchAsyncError(async (req, res, next) => {
     await product.save({ validateBeforeSave: false });
   }
 
-const order = await Order.create({
-  orderItems,
-  shippingInfo,
-  shippingPrice,
-  paymentInfo,
-  totalPrice,
-  itemPrice,
-  taxPrice,
-  paidAt: Date.now(),
-  ...(req.user?.id && { user: req.user.id }),
-});
+  const order = await Order.create({
+    orderItems,
+    shippingInfo,
+    shippingPrice,
+    paymentInfo,
+    totalPrice,
+    itemPrice,
+    taxPrice,
+    paidAt: Date.now(),
+    ...(req.user?.id && { user: req.user.id }),
+  });
 
-if (req.user?.id) {
-  await Cart.deleteMany({ userId: req.user.id });
-}
+  if (req.user?.id) {
+    await Cart.deleteMany({ userId: req.user.id });
+  }
 
   res.status(200).json({ success: true, order });
 });
@@ -105,7 +105,7 @@ exports.myOrders = catchAsyncError(async (req, res, next) => {
 });
 
 exports.orders = catchAsyncError(async (req, res, next) => {
-  const orders = await Order.find();
+  const orders = await Order.find().populate("user", "name email");
   let totalAmount = 0;
   orders.forEach((order) => {
     totalAmount += order.totalPrice;
