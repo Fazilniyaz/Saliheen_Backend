@@ -27,4 +27,12 @@ const couponSchema = new mongoose.Schema({
 
 const Coupon = mongoose.model("Coupon", couponSchema);
 
+// Drop stale index from a previous schema version that used "couponCode" instead of "code".
+// This causes duplicate-key errors (null) because the old index still exists in MongoDB.
+Coupon.collection
+  .dropIndex("couponCode_1")
+  .then(() => console.log("Dropped stale couponCode_1 index"))
+  .catch(() => { }); // Silently ignore if index doesn't exist
+
 module.exports = Coupon;
+

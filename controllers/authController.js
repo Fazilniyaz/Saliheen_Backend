@@ -6,7 +6,7 @@ const sendEmail = require("../utils/email");
 const crypto = require("crypto");
 const Cart = require("../models/cartModal");
 
-//User Registration - http://localhost:8000/api/v1/register
+//User Registration - https://saliheenperfumes-zd2i.onrender.com/api/v1/register
 exports.registerUser = catchAsyncError(async (req, res, next) => {
   const { name, email, password, contact } = req.body;
 
@@ -50,7 +50,7 @@ exports.registerUser = catchAsyncError(async (req, res, next) => {
   sendToken(user, 201, res);
 });
 
-//User Login - http://localhost:8000/api/v1/login
+//User Login - https://saliheenperfumes-zd2i.onrender.com/api/v1/login
 exports.loginUser = catchAsyncError(async (req, res, next) => {
   const { email, password } = req.body;
 

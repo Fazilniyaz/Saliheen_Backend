@@ -49,6 +49,7 @@ const address = require("./routes/addressRoutes");
 const cart = require("./routes/cartRoutes");
 const payment = require("./routes/paymentRoutes");
 const paypal = require("./routes/paypalRoutes");
+const coupon = require("./routes/couponRoutes");
 
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -64,6 +65,7 @@ app.use("/api/v1", orders);
 app.use("/api/v1", address);
 app.use("/api/v1", cart);
 app.use("/api/v1", payment);
+app.use("/api/v1", coupon);
 app.use("/paypal", paypal);
 
 const razorpay = new Razorpay({
