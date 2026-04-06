@@ -13,6 +13,7 @@ const jwt = require("jsonwebtoken");
 const Order = require("./models/orderModal");
 const Watch = require("./models/productModal");
 const Cart = require("./models/cartModal");
+const coupon = require("./routes/couponRoutes");
 
 // In-memory store: razorpayOrderId -> { orderData, userId }
 const pendingOrders = {};
@@ -65,6 +66,7 @@ app.use("/api/v1", address);
 app.use("/api/v1", cart);
 app.use("/api/v1", payment);
 app.use("/paypal", paypal);
+app.use("/api/v1", coupon);
 
 const razorpay = new Razorpay({
   key_id: "rzp_live_QNoqNSpHzqg5ox",
